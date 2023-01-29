@@ -684,3 +684,15 @@ procdump(void)
     printf("\n");
   }
 }
+
+// For sysinfo syscall
+// (not sure if i should lock a proc while reading its state?)
+uint64 get_nproc(void) {
+	uint64 cnt = 0;
+	for (struct proc* i = proc; i < &proc[NPROC]; i++) {
+		if(i->state != UNUSED) {
+			cnt++;
+		}
+	}
+	return cnt;
+}
