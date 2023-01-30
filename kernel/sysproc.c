@@ -51,6 +51,7 @@ sys_sbrk(void)
 uint64
 sys_sleep(void)
 {
+	backtrace(); // traps lab. see printf.c
   int n;
   uint ticks0;
 

@@ -119,6 +119,7 @@ void
 panic(char *s)
 {
   pr.locking = 0;
+	backtrace();
   printf("panic: ");
   printf(s);
   printf("\n");
@@ -132,4 +133,16 @@ printfinit(void)
 {
   initlock(&pr.lock, "pr");
   pr.locking = 1;
+}
+
+// lab:traps  Backtrace
+void backtrace() {
+	printf("backtrace:\n");
+	uint64 fp = r_fp();
+	uint64 end = PGROUNDUP(fp);
+	for(;;) {
+		if(fp == end) return;
+		printf("%p\n", *((uint64*)fp - 1));
+		fp = *((uint64*)fp - 2);
+	}
 }
