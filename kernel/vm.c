@@ -155,7 +155,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
       return -1;
     if(*pte & PTE_V)
       panic("mappages: remap");
-    *pte = PA2PTE(pa) | perm | PTE_V;
+    *pte = PA2PTE(pa) | perm | PTE_V; //IMPORTANT ONLY 3-LEVEL PTE HAS PERM BITS SET
     if(a == last)
       break;
     a += PGSIZE;
@@ -436,4 +436,23 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+
+void vmprint(pagetable_t pagetable, int level) {
+	if(level == 0) {
+		printf("page talbe %p\n", pagetable); 
+	}
+	for(int i = 0; i < 512; i++) {
+		pte_t pte = pagetable[i]; 
+		if(pte & PTE_V) {
+			switch(level) {
+				case 2: printf(".. ");
+				case 1: printf(".. ");
+				default: printf("..");
+			printf("%d: pte %p pa %p\n", i, pte, PTE2PA(pte)); 
+			if(level < 2) vmprint((pagetable_t)PTE2PA(pte), level + 1);
+			}
+		}
+	}
 }
