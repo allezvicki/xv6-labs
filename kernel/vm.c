@@ -456,3 +456,30 @@ void vmprint(pagetable_t pagetable, int level) {
 		}
 	}
 }
+
+int pgaccess(pagetable_t pagetable, uint64 va, int sz, uint64 usr) {
+	if(sz < 1) {
+		return -1;
+	}
+	if(sz > 64) {
+		sz = 64;
+	}
+	uint64 mask = 0;
+	va = PGROUNDDOWN(va);
+	uint64 end = va + (sz << PGSHIFT);
+	pte_t *pte;
+	uint64 bit = 1;
+	while(va != end) {
+		pte = walk(pagetable, va, 0);
+		if((*pte) & PTE_A) {
+			mask |= bit;	
+			*pte ^= PTE_A;
+		}
+		va += PGSIZE;
+		bit <<= 1;
+	}
+	if(copyout(pagetable, usr, (char*)(&mask), ((sz - 1) >> 3) + 1) < 0) {
+		return -1;
+	}
+	return 0;
+}

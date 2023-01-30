@@ -69,13 +69,18 @@ sys_sleep(void)
   return 0;
 }
 
-
+// why everyone else's return value is uint64 but yours is int???
 #ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
-  return 0;
+  // lab pgtbl: your code here
+	uint64 st, msk_addr;
+	int sz;
+	argaddr(0, &st);
+	argint(1, &sz);
+	argaddr(2, &msk_addr);
+	return pgaccess(myproc()->pagetable, st, sz, msk_addr);
 }
 #endif
 
