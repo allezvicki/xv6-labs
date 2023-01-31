@@ -75,6 +75,8 @@ uservec:
         ld sp, 8(a0)
 
         # make tp hold the current hartid, from p->trapframe->kernel_hartid
+				# seriously, what does hartid do here???
+				# hey, but shouldn't tp be already the same???
         ld tp, 32(a0)
 
         # load the address of usertrap(), from p->trapframe->kernel_trap
@@ -102,7 +104,7 @@ userret:
         # userret(pagetable)
         # called by usertrapret() in trap.c to
         # switch from kernel to user.
-        # a0: user page table, for satp.
+        # a0: user page table, for satp. <----- this!
 
         # switch to the user page table.
         sfence.vma zero, zero

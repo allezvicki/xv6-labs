@@ -77,8 +77,12 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
+  if(which_dev == 2){
+		yield();
+		if(p->alarm.ticks) {
+			p->alarm.ticks_cnt++;
+		}
+	}
 
   usertrapret();
 }
@@ -100,6 +104,9 @@ usertrapret(void)
   uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);
   w_stvec(trampoline_uservec);
 
+	// soooo again I am confused, why don't you set up kernel stack,
+	// and kernel page table when you initialize the trapframe???
+	// added by me
   // set up trapframe values that uservec will need when
   // the process next traps into the kernel.
   p->trapframe->kernel_satp = r_satp();         // kernel page table
@@ -116,8 +123,23 @@ usertrapret(void)
   x |= SSTATUS_SPIE; // enable interrupts in user mode
   w_sstatus(x);
 
+	// why is this????? oh i see. for userret assembly use
   // set S Exception Program Counter to the saved user pc.
-  w_sepc(p->trapframe->epc);
+	if(p->alarm.ticks && p->alarm.ticks_cnt == p->alarm.ticks) {
+		p->alarm.ticks_cnt = 0;
+		w_sepc(p->alarm.handler);
+		// copy 32 general purpose regis
+		memmove(&p->alarm.ra, &p->trapframe->ra, sizeof(uint64) * 31);
+		p->alarm.pc = p->trapframe->epc;
+	} else {
+		w_sepc(p->trapframe->epc);
+	}
+
+	if(p->alarm.ret == 1) {
+		p->alarm.ret = 0;
+		memmove(&p->trapframe->ra, &p->alarm.ra, sizeof(uint64) * 31);
+		w_sepc(p->alarm.pc);
+	}
 
   // tell trampoline.S the user page table to switch to.
   uint64 satp = MAKE_SATP(p->pagetable);

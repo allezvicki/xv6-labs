@@ -92,3 +92,29 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// to consider: does interrupt here bother???
+// for safety, somewhere you have to check handler is not kernel code and is excutable.
+uint64 sys_sigalarm(void) {
+	uint ticks;
+	argint(0, (int*)&ticks);
+	uint64 handler;
+	argaddr(1, &handler);
+	struct proc* p = myproc();
+	if(ticks == 0 && handler == 0) {
+		p->alarm.ticks = 0;
+		return 0;
+	}
+	if(ticks < 1) {
+		return -1;
+	}
+	p->alarm.ticks = ticks;
+	p->alarm.handler = handler;
+	return 0;
+	
+}
+
+uint64 sys_sigreturn(void) {
+	myproc()->alarm.ret = 1;
+	return 0;
+}
