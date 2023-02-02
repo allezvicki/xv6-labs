@@ -82,7 +82,9 @@ mycpu(void)
 struct proc*
 myproc(void)
 {
-  push_off();
+  push_off();  // at this time you gotta set interrup off because a timer interrupt might change cpu...
+							 // but actually, you really should pop_off() after you are done with c. this is feels early...
+							 // oh now i SEE!! you don't need cpu anyway, the thing you want here is proc!!!!
   struct cpu *c = mycpu();
   struct proc *p = c->proc;
   pop_off();
@@ -142,8 +144,11 @@ found:
 
   // Set up new context to start executing at forkret,
   // which returns to user space.
+	// !!! when the fork() returns, the child is markd RUNNABLE,
+	// so when a cpu picks it up, since there is no sched() to return to, it
+	// goes to forkret!
   memset(&p->context, 0, sizeof(p->context));
-  p->context.ra = (uint64)forkret;
+  p->context.ra = (uint64)forkret;  // interesting usage!!! so no nedd (*forkret)
   p->context.sp = p->kstack + PGSIZE;
 
   return p;
@@ -471,7 +476,7 @@ scheduler(void)
   }
 }
 
-// Switch to scheduler.  Must hold only p->lock
+// Switch to scheduler.  Must hold **only** p->lock
 // and have changed proc->state. Saves and restores
 // intena because intena is a property of this
 // kernel thread, not this CPU. It should
