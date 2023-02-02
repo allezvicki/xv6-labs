@@ -8,6 +8,8 @@
 #define NBUCKET 5
 #define NKEYS 100000
 
+pthread_mutex_t lk[NBUCKET];
+
 struct entry {
   int key;
   int value;
@@ -42,6 +44,7 @@ void put(int key, int value)
   int i = key % NBUCKET;
 
   // is the key already present?
+	pthread_mutex_lock(&lk[i]);
   struct entry *e = 0;
   for (e = table[i]; e != 0; e = e->next) {
     if (e->key == key)
@@ -54,6 +57,7 @@ void put(int key, int value)
     // the new is new.
     insert(key, value, &table[i], table[i]);
   }
+	pthread_mutex_unlock(&lk[i]);
 
 }
 
@@ -117,6 +121,10 @@ main(int argc, char *argv[])
   for (int i = 0; i < NKEYS; i++) {
     keys[i] = random();
   }
+
+	for(int i = 0; i < NBUCKET; i++) {
+		pthread_mutex_init(&lk[i], NULL);
+	}
 
   //
   // first the puts
