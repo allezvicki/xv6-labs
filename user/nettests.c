@@ -233,7 +233,8 @@ dns()
   memset(ibuf, 0, N);
   
   // 8.8.8.8: google's name server
-  dst = (8 << 24) | (8 << 16) | (8 << 8) | (8 << 0);
+	// changed to cloudflare's name server. it worked!
+  dst = (1 << 24) | (1 << 16) | (1 << 8) | (1 << 0);
 
   if((fd = connect(dst, 10000, 53)) < 0){
     fprintf(2, "ping: connect() failed\n");

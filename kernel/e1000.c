@@ -20,6 +20,9 @@ static struct mbuf *rx_mbufs[RX_RING_SIZE];
 static volatile uint32 *regs;
 
 struct spinlock e1000_lock;
+struct spinlock e1000_rx_lock;
+struct spinlock e1000_tx_lock;
+volatile int rev = 0;
 
 // called by pci_init().
 // xregs is the memory address at which the
@@ -30,6 +33,8 @@ e1000_init(uint32 *xregs)
   int i;
 
   initlock(&e1000_lock, "e1000");
+	initlock(&e1000_rx_lock, "e1000_rx");
+	initlock(&e1000_tx_lock, "e1000_tx");
 
   regs = xregs;
 
@@ -102,8 +107,22 @@ e1000_transmit(struct mbuf *m)
   // the TX descriptor ring so that the e1000 sends it. Stash
   // a pointer so that it can be freed after sending.
   //
-  
-  return 0;
+	acquire(&e1000_tx_lock);
+	uint32 i = regs[E1000_TDT];
+	struct tx_desc* desc = &tx_ring[i];
+	if(!(desc->status & E1000_TXD_STAT_DD)) {
+		return -1;
+	} else if(tx_mbufs[i]) {
+		mbuffree(tx_mbufs[i]);
+	}
+	desc->addr = (uint64)m->head;
+	desc->length = (uint16)m->len;
+	desc->cmd = (E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS);
+	tx_mbufs[i] = m;
+	regs[E1000_TDT] = (i + 1) % TX_RING_SIZE;
+	release(&e1000_tx_lock);
+	
+	return 0;
 }
 
 static void
@@ -114,7 +133,31 @@ e1000_recv(void)
   //
   // Check for packets that have arrived from the e1000
   // Create and deliver an mbuf for each packet (using net_rx()).
+	
+	// only check one packet. because if there are many, it will be handled
+	// in the next interrupt.
   //
+	acquire(&e1000_rx_lock);
+	/* printf("hart number: %d\n", cpuid()); */
+	// this proved that interrupt is delivered
+	// randomly to whatever cpu
+	uint32 i = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+	struct rx_desc* desc = &rx_ring[i];
+	while (desc->status & E1000_RXD_STAT_DD) {
+		rx_mbufs[i]->len = desc->length;
+		net_rx(rx_mbufs[i]);
+		rx_mbufs[i] = mbufalloc(0);
+		if(!rx_mbufs[i]) {
+			panic("e1000_recv");
+		}
+		desc->addr = (uint64)rx_mbufs[i]->head;
+		desc->status = 0;
+		i = (i + 1) % RX_RING_SIZE;
+		desc = &rx_ring[i];
+	}
+	regs[E1000_RDT] = (i - 1 + RX_RING_SIZE) % RX_RING_SIZE;
+	release(&e1000_rx_lock);
+
 }
 
 void
