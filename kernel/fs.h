@@ -57,6 +57,7 @@ struct dinode {
 
 struct dirent {
   ushort inum;
-  char name[DIRSIZ];
+  char name[DIRSIZ]; // Name is only specific to dirent.
+										 // a inode may take many names, if it
+										 // is linked in many directories.
 };
-
