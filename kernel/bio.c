@@ -33,6 +33,8 @@ struct {
   struct buf head;
 } bcache;
 
+// intersting list implementation.
+// head is a blank node, making the list circular.
 void
 binit(void)
 {

@@ -250,7 +250,9 @@ virtio_disk_rw(struct buf *b, int write)
   disk.desc[idx[0]].next = idx[1];
 
   disk.desc[idx[1]].addr = (uint64) b->data;
-  disk.desc[idx[1]].len = BSIZE;
+  disk.desc[idx[1]].len = BSIZE; // Disk is told to always write/read
+																 // Block size (which is freely difined
+																 // by the OS !
   if(write)
     disk.desc[idx[1]].flags = 0; // device reads b->data
   else
